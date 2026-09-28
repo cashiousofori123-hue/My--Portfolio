@@ -82,9 +82,49 @@ const SunIcon = () => (
 );
 
 const SKILLS = [
-  { title: "Frontend development", text: "Fast, responsive interfaces built with React and Vite." },
-  { title: "AI chatbots", text: "Conversational apps built with Next.js and the Vercel AI SDK." },
-  { title: "Computer engineering", text: "Solid hardware and software foundations behind every build." },
+  {
+    icon: "💻",
+    title: "Frontend development",
+    text: "Fast, responsive interfaces with dark and light modes, theme pickers and smooth interactions, built with React and Vite.",
+    tags: ["React", "Vite", "Responsive UI"],
+  },
+  {
+    icon: "🤖",
+    title: "AI chatbots",
+    text: "Conversational assistants like Dracula for the Efaristo Fix Tech Lab website, built with Next.js and the Vercel AI SDK.",
+    tags: ["Next.js", "Vercel AI SDK", "Chat UI"],
+  },
+  {
+    icon: "📋",
+    title: "Business automation",
+    text: "Building assistants that read online forms, explain what is needed and help fill them in, for Google Forms and other websites.",
+    tags: ["Next.js", "Automation", "Forms"],
+  },
+  {
+    icon: "🖥️",
+    title: "Computer engineering",
+    text: "Solid hardware and software foundations, from web apps to running Efaristo Fix Tech Lab, a phone repair lab in Accra and Assin Fosu.",
+    tags: ["Hardware", "Software", "Device repair"],
+  },
+];
+
+const PROJECTS = [
+  {
+    icon: "🔧",
+    title: "Efaristo Fix Tech Lab website",
+    text: "Website for a phone repair lab in Accra and Assin Fosu, showing services, prices and contact details.",
+    tags: ["Next.js", "Tailwind", "Vercel"],
+    href: WORK_URL,
+    cta: "Visit site",
+  },
+  {
+    icon: "🤖",
+    title: "Dracula AI assistant",
+    text: "A chat assistant on the Efaristo site that answers customer questions about services and prices.",
+    tags: ["Next.js", "Vercel AI SDK", "Chat UI"],
+    href: WORK_URL,
+    cta: "See it on the site",
+  },
 ];
 
 export default function App() {
@@ -118,14 +158,29 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Smooth scrolling for the nav links (About, Projects, Contact)
+  useEffect(() => {
+    document.documentElement.style.scrollBehavior = "smooth";
+  }, []);
+
   useEffect(() => {
     const move = (e) => setMouse({ x: e.clientX, y: e.clientY });
     window.addEventListener("mousemove", move);
     return () => window.removeEventListener("mousemove", move);
   }, []);
 
+  // Style for the "What I do" and "Projects" headings
+  const headingStyle = {
+    margin: "6px 0 -4px",
+    fontSize: 20,
+    textAlign: "left",
+  };
+
   return (
     <>
+      {/* Hides the About / Projects / Contact links on small phones */}
+      <style>{`@media (max-width: 640px) { .nav-links { display: none; } }`}</style>
+
       {showSplash && (
         <div className="splash" role="status" aria-live="polite">
           <div className="splash-content">
@@ -165,6 +220,17 @@ export default function App() {
           <div className="logo">
             {FIRST_NAME}
             <span>.</span>
+          </div>
+          <div className="nav-links" style={{ display: "flex", gap: 22 }}>
+            {[
+              ["About", "#about"],
+              ["Projects", "#projects"],
+              ["Contact", "#contact"],
+            ].map(([label, href]) => (
+              <a key={label} href={href} style={{ color: "inherit", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
+                {label}
+              </a>
+            ))}
           </div>
           <div className="nav-tools">
             <button
@@ -235,6 +301,9 @@ export default function App() {
               {FIRST_NAME} <span>{LAST_NAME}</span>
             </h1>
             <p className="role">{ROLE}</p>
+            <p className="bio" style={{ fontWeight: 600, marginBottom: 8 }}>
+              I build websites and AI chatbots for businesses.
+            </p>
             <p className="bio">
               I design and build web experiences and AI-powered tools, from React interfaces to
               chatbots, with a focus on clean code and thoughtful design.
@@ -246,12 +315,13 @@ export default function App() {
               <span><b>Efaristo</b> Tech Lab</span>
             </div>
 
-            <div className="connect">
+            <div className="connect" id="contact">
               <h2 className="connect-title">👋 Let&apos;s connect</h2>
               <p className="connect-text">
                 Have a project or an idea in mind? Tap any icon below to reach me directly. For
                 business enquiries, use the WhatsApp Business icon.
               </p>
+              <p className="connect-text" style={{ marginTop: 6 }}>📍 Based in Ghana</p>
             </div>
 
             <div className="socials">
@@ -273,23 +343,55 @@ export default function App() {
             </div>
 
             <div className="cta-row">
-              <a className="btn-primary" href={WORK_URL} target="_blank" rel="noopener noreferrer">
-                View my work
-              </a>
               <a
-                className="btn-secondary"
+                className="btn-primary"
                 href={`mailto:${EMAIL}?subject=${encodeURIComponent("Hello from your portfolio")}`}
               >
                 Contact me
+              </a>
+              <a className="btn-secondary" href="#projects">
+                View my work
               </a>
             </div>
           </div>
 
           <section className="skills">
+            <h2 id="about" style={{ ...headingStyle, marginTop: 0 }}>What I do</h2>
             {SKILLS.map((s) => (
               <div className="skill" key={s.title}>
-                <h3>{s.title}</h3>
+                <h3>
+                  <span aria-hidden="true">{s.icon}</span> {s.title}
+                </h3>
                 <p>{s.text}</p>
+                <div className="hardware" style={{ justifyContent: "center", marginTop: 12 }}>
+                  {s.tags.map((t) => (
+                    <span key={t}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <h2 id="projects" style={headingStyle}>Projects</h2>
+            {PROJECTS.map((p) => (
+              <div className="skill" key={p.title}>
+                <h3>
+                  <span aria-hidden="true">{p.icon}</span> {p.title}
+                </h3>
+                <p>{p.text}</p>
+                <div className="hardware" style={{ justifyContent: "center", marginTop: 12 }}>
+                  {p.tags.map((t) => (
+                    <span key={t}>{t}</span>
+                  ))}
+                </div>
+                <a
+                  className="btn-secondary"
+                  href={p.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: "inline-block", marginTop: 14 }}
+                >
+                  {p.cta}
+                </a>
               </div>
             ))}
           </section>
