@@ -1,21 +1,21 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import splashImg from "./assets/splash.jpeg";
-import profileImg from "./assets/profile.png";
+import { EMAIL, EXAMPLE_SHOP_URL, WHATSAPP_BUSINESS, WHATSAPP_PERSONAL, whatsappLink } from "./business.js";
+import { LINKS, PROFILE, PROJECTS, SHOP, SKILLS, WELCOME } from "./content.js";
+import { PayDeposit, ShopOffer } from "./GetAShop.jsx";
+import Art from "./Art.jsx";
 
-const FIRST_NAME = "Cashious";
-const LAST_NAME = "Ofori";
-const ROLE = "Computer Engineer";
-
-// CONTACT LINKS
-const EMAIL = "cashiousofori123@gmail.com";
-const GITHUB_URL = "https://github.com/cashiousofori123-hue";
-const LINKEDIN_URL = "https://www.linkedin.com/in/cashious-ofori-2a8721351";
-const FACEBOOK_URL = "https://www.facebook.com/share/18D2aXvo5g/";
-// WhatsApp numbers: country code + number, no + or spaces or leading 0
-const WHATSAPP_BUSINESS = "233554068969";
-const WHATSAPP_PERSONAL = "233546149938";
-const WORK_URL = "https://efaristo-tech-lab.vercel.app";
+// The splash shows once per visit, and not when someone opens a link to a part of the page (e.g. a pay link).
+const skipSplash = () => {
+  try {
+    if (window.location.search.includes("pay=") || window.location.hash) return true;
+    if (sessionStorage.getItem("splash-seen")) return true;
+    sessionStorage.setItem("splash-seen", "1");
+  } catch {
+    // Storage blocked (private mode): show the splash as before.
+  }
+  return false;
+};
 
 // Theme colors shown in the "Choose a theme" picker
 const PALETTES = [
@@ -50,17 +50,17 @@ const SOCIALS = [
   {
     label: "WhatsApp Business",
     icon: "whatsappBusiness",
-    href: `https://wa.me/${WHATSAPP_BUSINESS}?text=${encodeURIComponent("Hello, I found you through your portfolio.")}`,
+    href: whatsappLink("Hello, I found you through your portfolio.", WHATSAPP_BUSINESS),
   },
   {
     label: "WhatsApp Personal",
     icon: "whatsapp",
-    href: `https://wa.me/${WHATSAPP_PERSONAL}?text=${encodeURIComponent("Hello, I found you through your portfolio.")}`,
+    href: whatsappLink("Hello, I found you through your portfolio.", WHATSAPP_PERSONAL),
   },
-  { label: "LinkedIn", icon: "linkedin", href: LINKEDIN_URL },
-  { label: "GitHub", icon: "github", href: GITHUB_URL },
+  { label: "LinkedIn", icon: "linkedin", href: LINKS.linkedin },
+  { label: "GitHub", icon: "github", href: LINKS.github },
   { label: "Email", icon: "email", href: `mailto:${EMAIL}` },
-  { label: "Facebook", icon: "facebook", href: FACEBOOK_URL },
+  { label: "Facebook", icon: "facebook", href: LINKS.facebook },
 ];
 
 const SocialIcon = ({ name }) => (
@@ -81,54 +81,10 @@ const SunIcon = () => (
   </svg>
 );
 
-const SKILLS = [
-  {
-    icon: "💻",
-    title: "Frontend development",
-    text: "Fast, responsive interfaces with dark and light modes, theme pickers and smooth interactions, built with React and Vite.",
-    tags: ["React", "Vite", "Responsive UI"],
-  },
-  {
-    icon: "🤖",
-    title: "AI chatbots",
-    text: "Conversational assistants like Dracula for the Efaristo Fix Tech Lab website, built with Next.js and the Vercel AI SDK.",
-    tags: ["Next.js", "Vercel AI SDK", "Chat UI"],
-  },
-  {
-    icon: "📋",
-    title: "Business automation",
-    text: "Building assistants that read online forms, explain what is needed and help fill them in, for Google Forms and other websites.",
-    tags: ["Next.js", "Automation", "Forms"],
-  },
-  {
-    icon: "🖥️",
-    title: "Computer engineering",
-    text: "Solid hardware and software foundations, from web apps to running Efaristo Fix Tech Lab, a phone repair lab in Accra and Assin Fosu.",
-    tags: ["Hardware", "Software", "Device repair"],
-  },
-];
-
-const PROJECTS = [
-  {
-    icon: "🔧",
-    title: "Efaristo Fix Tech Lab website",
-    text: "Website for a phone repair lab in Accra and Assin Fosu, showing services, prices and contact details.",
-    tags: ["Next.js", "Tailwind", "Vercel"],
-    href: WORK_URL,
-    cta: "Visit site",
-  },
-  {
-    icon: "🤖",
-    title: "Dracula AI assistant",
-    text: "A chat assistant on the Efaristo site that answers customer questions about services and prices.",
-    tags: ["Next.js", "Vercel AI SDK", "Chat UI"],
-    href: WORK_URL,
-    cta: "See it on the site",
-  },
-];
+const fullName = `${PROFILE.firstName} ${PROFILE.lastName}`;
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => !skipSplash());
   const [theme, setTheme] = useState("dark");
   const [palette, setPalette] = useState("blue");
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -158,9 +114,11 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Smooth scrolling for the nav links (About, Projects, Contact)
+  // Smooth scrolling for the nav links, and a link to a part of the page (…#pay) opens at that part
   useEffect(() => {
     document.documentElement.style.scrollBehavior = "smooth";
+    const target = window.location.hash && document.getElementById(window.location.hash.slice(1));
+    if (target) target.scrollIntoView();
   }, []);
 
   useEffect(() => {
@@ -169,26 +127,47 @@ export default function App() {
     return () => window.removeEventListener("mousemove", move);
   }, []);
 
-  // Style for the "What I do" and "Projects" headings
-  const headingStyle = {
-    margin: "6px 0 -4px",
-    fontSize: 20,
-    textAlign: "left",
-  };
+  const navLinks = [
+    ["About", "#about"],
+    ["Work", "#projects"],
+    ["Online shop", "#shop"],
+    ["Pay", "#pay"],
+    ["Contact", "#contact"],
+  ];
+
+  const socialIcons = (
+    <div className="socials">
+      {SOCIALS.map((item) => {
+        const external = item.href.startsWith("http");
+        return (
+          <a
+            key={item.label}
+            href={item.href}
+            aria-label={item.label}
+            title={item.label}
+            {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+          >
+            <SocialIcon name={item.icon} />
+            {item.badge && <span className="social-badge">{item.badge}</span>}
+          </a>
+        );
+      })}
+    </div>
+  );
 
   return (
     <>
-      {/* Hides the About / Projects / Contact links on small phones */}
-      <style>{`@media (max-width: 640px) { .nav-links { display: none; } }`}</style>
+      {/* Hides the section links on small phones; the "Get a shop" button stays */}
+      <style>{`@media (max-width: 760px) { .nav-links { display: none !important; } }`}</style>
 
       {showSplash && (
         <div className="splash" role="status" aria-live="polite">
           <div className="splash-content">
-            <img className="splash-img" src={splashImg} alt={`${FIRST_NAME} ${LAST_NAME}`} />
+            <img className="splash-img" src={WELCOME.photo} alt={fullName} />
             <h1>
-              Welcome to my <span>portfolio</span>
+              {WELCOME.title} <span>{WELCOME.titleHighlight}</span>
             </h1>
-            <p>Thank you for visiting. Take a look at my work in computer engineering and software development.</p>
+            <p>{WELCOME.text}</p>
             <div className="splash-bar" />
           </div>
         </div>
@@ -206,8 +185,8 @@ export default function App() {
             ×
           </button>
           <img
-            src={profileImg}
-            alt={`${FIRST_NAME} ${LAST_NAME}`}
+            src={PROFILE.photo}
+            alt={fullName}
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -218,21 +197,18 @@ export default function App() {
 
         <nav className="nav">
           <div className="logo">
-            {FIRST_NAME}
+            {PROFILE.firstName}
             <span>.</span>
           </div>
           <div className="nav-links" style={{ display: "flex", gap: 22 }}>
-            {[
-              ["About", "#about"],
-              ["Projects", "#projects"],
-              ["Contact", "#contact"],
-            ].map(([label, href]) => (
+            {navLinks.map(([label, href]) => (
               <a key={label} href={href} style={{ color: "inherit", textDecoration: "none", fontSize: 14, fontWeight: 500 }}>
                 {label}
               </a>
             ))}
           </div>
           <div className="nav-tools">
+            <a className="nav-cta" href="#shop">Get a shop</a>
             <button
               className="icon-btn"
               onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
@@ -244,8 +220,9 @@ export default function App() {
               className="themes-btn"
               onClick={() => setPaletteOpen((o) => !o)}
               aria-expanded={paletteOpen}
+              aria-label="Themes"
             >
-              <span aria-hidden="true">🎨</span> Themes
+              <span aria-hidden="true">🎨</span> <span className="themes-label">Themes</span>
             </button>
           </div>
 
@@ -292,62 +269,40 @@ export default function App() {
                 aria-label="View full profile photo"
                 title="Tap to view full photo"
               >
-                <img className="profile-img" src={profileImg} alt={`${FIRST_NAME} ${LAST_NAME}`} />
+                <img className="profile-img" src={PROFILE.photo} alt={fullName} />
               </button>
-              <span className="live">Open to work</span>
+              {PROFILE.status && <span className="live">{PROFILE.status}</span>}
             </div>
 
             <h1>
-              {FIRST_NAME} <span>{LAST_NAME}</span>
+              {PROFILE.firstName} <span>{PROFILE.lastName}</span>
             </h1>
-            <p className="role">{ROLE}</p>
+            <p className="role">{PROFILE.role}</p>
             <p className="bio" style={{ fontWeight: 600, marginBottom: 8 }}>
-              I build websites and AI chatbots for businesses.
+              {PROFILE.headline}
             </p>
-            <p className="bio">
-              I design and build web experiences and AI-powered tools, from React interfaces to
-              chatbots, with a focus on clean code and thoughtful design.
-            </p>
+            <p className="bio">{PROFILE.bio}</p>
 
             <div className="hardware">
-              <span><b>React</b> Vite</span>
-              <span><b>Next.js</b> Vercel AI SDK</span>
-              <span><b>Efaristo</b> Tech Lab</span>
+              {PROFILE.badges.map(([bold, rest]) => (
+                <span key={bold + rest}><b>{bold}</b> {rest}</span>
+              ))}
             </div>
 
-            <div className="connect" id="contact">
+            <div className="connect">
               <h2 className="connect-title">👋 Let&apos;s connect</h2>
               <p className="connect-text">
                 Have a project or an idea in mind? Tap any icon below to reach me directly. For
                 business enquiries, use the WhatsApp Business icon.
               </p>
-              <p className="connect-text" style={{ marginTop: 6 }}>📍 Based in Ghana</p>
+              <p className="connect-text" style={{ marginTop: 6 }}>📍 {PROFILE.location}</p>
             </div>
 
-            <div className="socials">
-              {SOCIALS.map((item) => {
-                const external = item.href.startsWith("http");
-                return (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    aria-label={item.label}
-                    title={item.label}
-                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                  >
-                    <SocialIcon name={item.icon} />
-                    {item.badge && <span className="social-badge">{item.badge}</span>}
-                  </a>
-                );
-              })}
-            </div>
+            {socialIcons}
 
             <div className="cta-row">
-              <a
-                className="btn-primary"
-                href={`mailto:${EMAIL}?subject=${encodeURIComponent("Hello from your portfolio")}`}
-              >
-                Contact me
+              <a className="btn-primary" href="#shop">
+                Get an online shop
               </a>
               <a className="btn-secondary" href="#projects">
                 View my work
@@ -355,13 +310,34 @@ export default function App() {
             </div>
           </div>
 
-          <section className="skills">
-            <h2 id="about" style={{ ...headingStyle, marginTop: 0 }}>What I do</h2>
+          <div className="offer offer-hero">
+            <span className="badge-new">For businesses</span>
+            <h2>Sell online with your own shop</h2>
+            <p className="bio">
+              Stop answering &ldquo;how much?&rdquo; in your DMs and checking payments by hand. I set up a complete online
+              shop for your business, ready to take orders.
+            </p>
+            <ul className="ticks">
+              {SHOP.highlights.map((t) => <li key={t}>{t}</li>)}
+            </ul>
+            <div className="cta-row">
+              <a className="btn-primary" href="#shop">Register now</a>
+              <a className="btn-secondary" href={EXAMPLE_SHOP_URL} target="_blank" rel="noopener noreferrer">See an example shop</a>
+            </div>
+            <p className="offer-note">Already agreed a price? <a href="#pay">Pay your deposit</a></p>
+          </div>
+        </header>
+
+        <section className="section" id="about">
+          <div className="section-head">
+            <p className="eyebrow">About</p>
+            <h2>What I do</h2>
+          </div>
+          <div className="grid-3">
             {SKILLS.map((s) => (
               <div className="skill" key={s.title}>
-                <h3>
-                  <span aria-hidden="true">{s.icon}</span> {s.title}
-                </h3>
+                {s.image ? <img className="skill-photo" src={s.image} alt="" loading="lazy" /> : <Art name={s.art} />}
+                <h3>{s.title}</h3>
                 <p>{s.text}</p>
                 <div className="hardware" style={{ justifyContent: "center", marginTop: 12 }}>
                   {s.tags.map((t) => (
@@ -370,32 +346,58 @@ export default function App() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
 
-            <h2 id="projects" style={headingStyle}>Projects</h2>
+        <section className="section" id="projects">
+          <div className="section-head">
+            <p className="eyebrow">Work</p>
+            <h2>Projects</h2>
+          </div>
+          <div className="grid-2">
             {PROJECTS.map((p) => (
-              <div className="skill" key={p.title}>
-                <h3>
-                  <span aria-hidden="true">{p.icon}</span> {p.title}
-                </h3>
-                <p>{p.text}</p>
-                <div className="hardware" style={{ justifyContent: "center", marginTop: 12 }}>
-                  {p.tags.map((t) => (
-                    <span key={t}>{t}</span>
-                  ))}
+              <div className={p.image ? "skill project-feature" : "skill"} key={p.title}>
+                {p.image && (
+                  <a href={p.href} target="_blank" rel="noopener noreferrer" className="project-shot" tabIndex={-1} aria-hidden="true">
+                    <img src={p.image} alt="" loading="lazy" width="1280" height="800" />
+                  </a>
+                )}
+                <div>
+                  <h3>
+                    <span aria-hidden="true">{p.icon}</span> {p.title}
+                  </h3>
+                  <p>{p.text}</p>
+                  <div className="hardware" style={{ justifyContent: "center", marginTop: 12 }}>
+                    {p.tags.map((t) => (
+                      <span key={t}>{t}</span>
+                    ))}
+                  </div>
+                  <a
+                    className="btn-secondary"
+                    href={p.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ display: "inline-block", marginTop: 14 }}
+                  >
+                    {p.cta}
+                  </a>
                 </div>
-                <a
-                  className="btn-secondary"
-                  href={p.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ display: "inline-block", marginTop: 14 }}
-                >
-                  {p.cta}
-                </a>
               </div>
             ))}
-          </section>
-        </header>
+          </div>
+        </section>
+
+        <ShopOffer />
+        <PayDeposit />
+
+        <footer className="footer" id="contact">
+          <h2>Let&apos;s work together</h2>
+          <p className="connect-text">
+            Message me on WhatsApp or email <a href={`mailto:${EMAIL}`}>{EMAIL}</a>. I usually reply the same day.
+          </p>
+          {socialIcons}
+          <p className="footer-small">© {new Date().getFullYear()} {fullName} · {PROFILE.location}</p>
+        </footer>
       </div>
     </>
   );
