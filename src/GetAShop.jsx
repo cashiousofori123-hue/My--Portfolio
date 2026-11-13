@@ -1,14 +1,5 @@
 import { useState } from "react";
-import {
-  EMAIL,
-  EXAMPLE_SHOP_URL,
-  MOMO_NAME,
-  MOMO_NETWORK,
-  MOMO_NUMBER,
-  PAYSTACK_PUBLIC_KEY,
-  whatsappLink,
-} from "./business.js";
-import { SHOP } from "./content.js";
+import { whatsappLink } from "./business.js";
 
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 const digits = (v) => v.replace(/\D/g, "");
@@ -42,8 +33,10 @@ const loadPaystack = () => {
   return paystackScript;
 };
 
-export function ShopOffer() {
-  const [f, setF] = useState({ name: "", business: "", phone: "", email: "", kind: SHOP.kinds[0], note: "" });
+// Your contact and payment details and the offer come from the live content (content.js or the admin page).
+export function ShopOffer({ content }) {
+  const { shop, contact, profile } = content;
+  const [f, setF] = useState({ name: "", business: "", phone: "", email: "", kind: shop.kinds[0] || "", note: "" });
   const [error, setError] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -54,7 +47,7 @@ export function ShopOffer() {
     if (f.email.trim() && !isEmail(f.email)) return setError("Please check your email address.");
     setError("");
     const text = [
-      "Hello Cashious, I want an online shop for my business.",
+      `Hello ${profile.firstName}, I want an online shop for my business.`,
       `Name: ${f.name.trim()}`,
       `Business: ${f.business.trim()}`,
       `What we sell: ${f.kind}`,
@@ -62,7 +55,7 @@ export function ShopOffer() {
       f.email.trim() && `Email: ${f.email.trim()}`,
       f.note.trim() && `Note: ${f.note.trim()}`,
     ].filter(Boolean).join("\n");
-    window.open(whatsappLink(text), "_blank", "noopener");
+    window.open(whatsappLink(text, contact.whatsappBusiness), "_blank", "noopener");
   };
 
   return (
@@ -80,9 +73,9 @@ export function ShopOffer() {
         <div className="offer">
           <h3>What you get</h3>
           <ul className="ticks">
-            {SHOP.features.map((t) => <li key={t}>{t}</li>)}
+            {shop.features.map((t) => <li key={t}>{t}</li>)}
           </ul>
-          <a className="btn-secondary" href={EXAMPLE_SHOP_URL} target="_blank" rel="noopener noreferrer" style={{ marginTop: 20 }}>
+          <a className="btn-secondary" href={contact.exampleShopUrl} target="_blank" rel="noopener noreferrer" style={{ marginTop: 20 }}>
             Try a live example shop
           </a>
         </div>
@@ -100,7 +93,7 @@ export function ShopOffer() {
           </div>
           <label className="field">What do you sell?
             <select className="input" value={f.kind} onChange={set("kind")}>
-              {SHOP.kinds.map((k) => <option key={k}>{k}</option>)}
+              {shop.kinds.map((k) => <option key={k}>{k}</option>)}
             </select>
           </label>
           <label className="field">Anything else? <small>(optional)</small>
@@ -109,14 +102,14 @@ export function ShopOffer() {
           {error && <p className="form-error" role="alert">{error}</p>}
           <button type="submit" className="btn-primary">Send on WhatsApp</button>
           <p className="form-help">
-            No WhatsApp? Email me at <a href={`mailto:${EMAIL}?subject=${encodeURIComponent("Online shop for my business")}`}>{EMAIL}</a>.
+            No WhatsApp? Email me at <a href={`mailto:${contact.email}?subject=${encodeURIComponent("Online shop for my business")}`}>{contact.email}</a>.
           </p>
         </form>
       </div>
 
       <h3 className="sub-head">How it works</h3>
       <ol className="steps">
-        {SHOP.steps.map(([title, text]) => (
+        {shop.steps.map(([title, text]) => (
           <li key={title}><b>{title}</b>{text}</li>
         ))}
       </ol>
@@ -124,7 +117,9 @@ export function ShopOffer() {
   );
 }
 
-export function PayDeposit() {
+export function PayDeposit({ content }) {
+  const { contact, profile } = content;
+  const wa = (text) => whatsappLink(text, contact.whatsappBusiness);
   const [f, setF] = useState(() => ({ ...fromLink(), name: "", email: "", phone: "" }));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -149,7 +144,7 @@ export function PayDeposit() {
     try {
       const PaystackPop = await loadPaystack();
       new PaystackPop().newTransaction({
-        key: PAYSTACK_PUBLIC_KEY,
+        key: contact.paystackPublicKey,
         email: f.email.trim(),
         amount: Math.round(amount * 100),
         currency: "GHS",
@@ -180,7 +175,7 @@ export function PayDeposit() {
 
   const money = `GHS ${amount > 0 ? amount.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "…"}`;
   const momoMessage = [
-    "Hello Cashious, I have paid my 50% deposit by Mobile Money.",
+    `Hello ${profile.firstName}, I have paid my 50% deposit by Mobile Money.`,
     `Name: ${f.name.trim()}`,
     `Business: ${f.business.trim()}`,
     `Amount: ${money}`,
@@ -203,7 +198,7 @@ export function PayDeposit() {
             is <b>{paid.reference}</b>, and Paystack has emailed you a receipt.
           </p>
           <a className="btn-primary" style={{ marginTop: 16 }} target="_blank" rel="noopener noreferrer"
-            href={whatsappLink(`Hello Cashious, I have paid my deposit for ${f.business.trim()}. Reference: ${paid.reference}`)}>
+            href={wa(`Hello ${profile.firstName}, I have paid my deposit for ${f.business.trim()}. Reference: ${paid.reference}`)}>
             Tell me on WhatsApp
           </a>
         </div>
@@ -220,24 +215,24 @@ export function PayDeposit() {
           <label className="field">Email <small>(your receipt goes here)</small><input className="input" type="email" value={f.email} onChange={set("email")} autoComplete="email" maxLength={120} /></label>
           {error && <p className="form-error" role="alert">{error}</p>}
 
-          {PAYSTACK_PUBLIC_KEY ? (
+          {contact.paystackPublicKey ? (
             <>
               <button type="submit" className="btn-primary" disabled={busy}>{busy ? "Opening Paystack…" : `Pay ${money}`}</button>
               <p className="form-help">Secure payment by Mobile Money or card through Paystack. This site never sees your PIN or card details.</p>
             </>
-          ) : MOMO_NUMBER ? (
+          ) : contact.momoNumber ? (
             <div className="notice">
               <p>Send <b>{money}</b> by Mobile Money to:</p>
-              <p style={{ marginTop: 8 }}><b>{MOMO_NUMBER}</b> ({MOMO_NETWORK}), name: <b>{MOMO_NAME}</b></p>
+              <p style={{ marginTop: 8 }}><b>{contact.momoNumber}</b> ({contact.momoNetwork}), name: <b>{contact.momoName}</b></p>
               <p style={{ marginTop: 8 }}>Use your business name as the reference, then send me the transaction ID.</p>
-              <a className="btn-primary" style={{ marginTop: 14 }} target="_blank" rel="noopener noreferrer" href={whatsappLink(momoMessage)}
+              <a className="btn-primary" style={{ marginTop: 14 }} target="_blank" rel="noopener noreferrer" href={wa(momoMessage)}
                 onClick={(e) => { const problem = check(); setError(problem); if (problem) e.preventDefault(); }}>
                 I have paid: send the transaction ID
               </a>
             </div>
           ) : (
             <a className="btn-primary" target="_blank" rel="noopener noreferrer"
-              href={whatsappLink(`Hello Cashious, I am ready to pay my deposit${f.business.trim() ? ` for ${f.business.trim()}` : ""}. How do I pay?`)}>
+              href={wa(`Hello ${profile.firstName}, I am ready to pay my deposit${f.business.trim() ? ` for ${f.business.trim()}` : ""}. How do I pay?`)}>
               Ask me how to pay on WhatsApp
             </a>
           )}

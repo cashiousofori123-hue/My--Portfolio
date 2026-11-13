@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secret keys for local work (the live site uses Vercel Environment Variables)
+.env
+.env.*

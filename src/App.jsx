@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import { EMAIL, EXAMPLE_SHOP_URL, WHATSAPP_BUSINESS, WHATSAPP_PERSONAL, whatsappLink } from "./business.js";
-import { LINKS, PROFILE, PROJECTS, SHOP, SKILLS, WELCOME } from "./content.js";
+import { whatsappLink } from "./business.js";
+import { imageUrl } from "./content.js";
+import { useContent } from "./contentStore.js";
 import { PayDeposit, ShopOffer } from "./GetAShop.jsx";
 import Art from "./Art.jsx";
+import ChatBot from "./ChatBot.jsx";
 
 // The splash shows once per visit, and not when someone opens a link to a part of the page (e.g. a pay link).
 const skipSplash = () => {
@@ -46,22 +48,17 @@ const ICON_COLORS = {
   facebook: "#1877F2",
 };
 
-const SOCIALS = [
-  {
-    label: "WhatsApp Business",
-    icon: "whatsappBusiness",
-    href: whatsappLink("Hello, I found you through your portfolio.", WHATSAPP_BUSINESS),
-  },
-  {
-    label: "WhatsApp Personal",
-    icon: "whatsapp",
-    href: whatsappLink("Hello, I found you through your portfolio.", WHATSAPP_PERSONAL),
-  },
-  { label: "LinkedIn", icon: "linkedin", href: LINKS.linkedin },
-  { label: "GitHub", icon: "github", href: LINKS.github },
-  { label: "Email", icon: "email", href: `mailto:${EMAIL}` },
-  { label: "Facebook", icon: "facebook", href: LINKS.facebook },
-];
+// The contact icons; one whose number or link is empty is left out.
+const HELLO = "Hello, I found you through your portfolio.";
+const socialsFor = ({ contact, links }) =>
+  [
+    { label: "WhatsApp Business", icon: "whatsappBusiness", href: contact.whatsappBusiness && whatsappLink(HELLO, contact.whatsappBusiness) },
+    { label: "WhatsApp Personal", icon: "whatsapp", href: contact.whatsappPersonal && whatsappLink(HELLO, contact.whatsappPersonal) },
+    { label: "LinkedIn", icon: "linkedin", href: links.linkedin },
+    { label: "GitHub", icon: "github", href: links.github },
+    { label: "Email", icon: "email", href: contact.email && `mailto:${contact.email}` },
+    { label: "Facebook", icon: "facebook", href: links.facebook },
+  ].filter((s) => s.href);
 
 const SocialIcon = ({ name }) => (
   <svg width="20" height="20" viewBox="0 0 16 16" fill={ICON_COLORS[name] || "currentColor"} aria-hidden="true">
@@ -81,9 +78,11 @@ const SunIcon = () => (
   </svg>
 );
 
-const fullName = `${PROFILE.firstName} ${PROFILE.lastName}`;
-
 export default function App() {
+  const content = useContent();
+  const { profile, welcome, skills, projects, shop, contact } = content;
+  const fullName = `${profile.firstName} ${profile.lastName}`;
+  const socials = socialsFor(content);
   const [showSplash, setShowSplash] = useState(() => !skipSplash());
   const [theme, setTheme] = useState("dark");
   const [palette, setPalette] = useState("blue");
@@ -137,7 +136,7 @@ export default function App() {
 
   const socialIcons = (
     <div className="socials">
-      {SOCIALS.map((item) => {
+      {socials.map((item) => {
         const external = item.href.startsWith("http");
         return (
           <a
@@ -163,11 +162,11 @@ export default function App() {
       {showSplash && (
         <div className="splash" role="status" aria-live="polite">
           <div className="splash-content">
-            <img className="splash-img" src={WELCOME.photo} alt={fullName} />
+            <img className="splash-img" src={imageUrl(welcome.photo)} alt={fullName} />
             <h1>
-              {WELCOME.title} <span>{WELCOME.titleHighlight}</span>
+              {welcome.title} <span>{welcome.titleHighlight}</span>
             </h1>
-            <p>{WELCOME.text}</p>
+            <p>{welcome.text}</p>
             <div className="splash-bar" />
           </div>
         </div>
@@ -185,7 +184,7 @@ export default function App() {
             ×
           </button>
           <img
-            src={PROFILE.photo}
+            src={imageUrl(profile.photo)}
             alt={fullName}
             onClick={(e) => e.stopPropagation()}
           />
@@ -197,7 +196,7 @@ export default function App() {
 
         <nav className="nav">
           <div className="logo">
-            {PROFILE.firstName}
+            {profile.firstName}
             <span>.</span>
           </div>
           <div className="nav-links" style={{ display: "flex", gap: 22 }}>
@@ -269,22 +268,22 @@ export default function App() {
                 aria-label="View full profile photo"
                 title="Tap to view full photo"
               >
-                <img className="profile-img" src={PROFILE.photo} alt={fullName} />
+                <img className="profile-img" src={imageUrl(profile.photo)} alt={fullName} />
               </button>
-              {PROFILE.status && <span className="live">{PROFILE.status}</span>}
+              {profile.status && <span className="live">{profile.status}</span>}
             </div>
 
             <h1>
-              {PROFILE.firstName} <span>{PROFILE.lastName}</span>
+              {profile.firstName} <span>{profile.lastName}</span>
             </h1>
-            <p className="role">{PROFILE.role}</p>
+            <p className="role">{profile.role}</p>
             <p className="bio" style={{ fontWeight: 600, marginBottom: 8 }}>
-              {PROFILE.headline}
+              {profile.headline}
             </p>
-            <p className="bio">{PROFILE.bio}</p>
+            <p className="bio">{profile.bio}</p>
 
             <div className="hardware">
-              {PROFILE.badges.map(([bold, rest]) => (
+              {profile.badges.map(([bold, rest]) => (
                 <span key={bold + rest}><b>{bold}</b> {rest}</span>
               ))}
             </div>
@@ -295,7 +294,7 @@ export default function App() {
                 Have a project or an idea in mind? Tap any icon below to reach me directly. For
                 business enquiries, use the WhatsApp Business icon.
               </p>
-              <p className="connect-text" style={{ marginTop: 6 }}>📍 {PROFILE.location}</p>
+              <p className="connect-text" style={{ marginTop: 6 }}>📍 {profile.location}</p>
             </div>
 
             {socialIcons}
@@ -318,11 +317,11 @@ export default function App() {
               shop for your business, ready to take orders.
             </p>
             <ul className="ticks">
-              {SHOP.highlights.map((t) => <li key={t}>{t}</li>)}
+              {shop.highlights.map((t) => <li key={t}>{t}</li>)}
             </ul>
             <div className="cta-row">
               <a className="btn-primary" href="#shop">Register now</a>
-              <a className="btn-secondary" href={EXAMPLE_SHOP_URL} target="_blank" rel="noopener noreferrer">See an example shop</a>
+              <a className="btn-secondary" href={contact.exampleShopUrl} target="_blank" rel="noopener noreferrer">See an example shop</a>
             </div>
             <p className="offer-note">Already agreed a price? <a href="#pay">Pay your deposit</a></p>
           </div>
@@ -334,9 +333,9 @@ export default function App() {
             <h2>What I do</h2>
           </div>
           <div className="grid-3">
-            {SKILLS.map((s) => (
+            {skills.map((s) => (
               <div className="skill" key={s.title}>
-                {s.image ? <img className="skill-photo" src={s.image} alt="" loading="lazy" /> : <Art name={s.art} />}
+                {s.image ? <img className="skill-photo" src={imageUrl(s.image)} alt="" loading="lazy" /> : <Art name={s.art} />}
                 <h3>{s.title}</h3>
                 <p>{s.text}</p>
                 <div className="hardware" style={{ justifyContent: "center", marginTop: 12 }}>
@@ -355,11 +354,11 @@ export default function App() {
             <h2>Projects</h2>
           </div>
           <div className="grid-2">
-            {PROJECTS.map((p) => (
+            {projects.map((p) => (
               <div className={p.image ? "skill project-feature" : "skill"} key={p.title}>
                 {p.image && (
                   <a href={p.href} target="_blank" rel="noopener noreferrer" className="project-shot" tabIndex={-1} aria-hidden="true">
-                    <img src={p.image} alt="" loading="lazy" width="1280" height="800" />
+                    <img src={imageUrl(p.image)} alt="" loading="lazy" width="1280" height="800" />
                   </a>
                 )}
                 <div>
@@ -387,18 +386,20 @@ export default function App() {
           </div>
         </section>
 
-        <ShopOffer />
-        <PayDeposit />
+        <ShopOffer content={content} />
+        <PayDeposit content={content} />
 
         <footer className="footer" id="contact">
           <h2>Let&apos;s work together</h2>
           <p className="connect-text">
-            Message me on WhatsApp or email <a href={`mailto:${EMAIL}`}>{EMAIL}</a>. I usually reply the same day.
+            Message me on WhatsApp or email <a href={`mailto:${contact.email}`}>{contact.email}</a>. I usually reply the same day.
           </p>
           {socialIcons}
-          <p className="footer-small">© {new Date().getFullYear()} {fullName} · {PROFILE.location}</p>
+          <p className="footer-small">© {new Date().getFullYear()} {fullName} · {profile.location}</p>
         </footer>
       </div>
+
+      {content.chat.enabled && <ChatBot content={content} />}
     </>
   );
 }
